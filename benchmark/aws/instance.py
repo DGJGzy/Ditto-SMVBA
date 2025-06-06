@@ -16,8 +16,8 @@ class AWSError(Exception):
 
 
 class InstanceManager:
-    INSTANCE_NAME = 'async-hotstuff-node'
-    SECURITY_GROUP_NAME = 'async-hotstuff'
+    INSTANCE_NAME = 'async-hotstuff-smvba-node'
+    SECURITY_GROUP_NAME = 'async-hotstuff-smvba'
 
     def __init__(self, settings):
         assert isinstance(settings, Settings)
@@ -135,7 +135,7 @@ class InstanceManager:
         response = client.describe_images(
             Filters=[{
                 'Name': 'description',
-                'Values': ['Canonical, Ubuntu, 20.04 LTS, amd64 focal image build on 2020-10-26']
+                'Values': ['Canonical, Ubuntu, 20.04 LTS, amd64 focal image *']
             }]
         )
         return response['Images'][0]['ImageId']

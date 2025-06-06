@@ -962,55 +962,46 @@ impl Fallback {
         self.timeout = 0;
         self.advance_view(view+1).await;
 
-        if self.exp_counter < self.exp_num || self.is_vaba {
-            // Immediately timeouts
-            // use timeout to exchange highest qcs
-            self.exp_counter += 1 ;
+        // Immediately timeouts
+        // use timeout to exchange highest qcs
+        self.exp_counter += 1 ;
 
-            self.timeout = 1;
-            let timeout = Timeout::new(
-                self.high_qc.clone(),
-                self.view,
-                self.name,
-                self.signature_service.clone(),
-            )
-            .await;
-            debug!("Created {:?}", timeout);
-            self.timer.reset();
-            let message = ConsensusMessage::Timeout(timeout.clone());
-            Synchronizer::transmit(
-                message,
-                &self.name,
-                None,
-                &self.network_filter,
-                &self.committee,
-            )
-            .await.expect("Failed to send timeouts");
-            self.handle_timeout(&timeout)
-            .await
-            .expect("Failed to handle timeouts");
-        } else {
-            self.exp_counter = 1;
-            if self.name == self.leader_elector.get_leader(self.round) {
-                self.generate_proposal(None, Some(random_coin.clone()), self.high_qc.clone())
-                    .await
-                    .expect("Failed to send the first block after fallback");
-            }
-        }
+        self.timeout = 1;
+        let timeout = Timeout::new(
+            self.high_qc.clone(),
+            self.view,
+            self.name,
+            self.signature_service.clone(),
+        )
+        .await;
+        debug!("Created {:?}", timeout);
+        self.timer.reset();
+        let message = ConsensusMessage::Timeout(timeout.clone());
+        Synchronizer::transmit(
+            message,
+            &self.name,
+            None,
+            &self.network_filter,
+            &self.committee,
+        )
+        .await.expect("Failed to send timeouts");
+        self.handle_timeout(&timeout)
+        .await
+        .expect("Failed to handle timeouts");
     }
 
     pub async fn run(&mut self) {
         // Upon booting, generate the very first block (if we are the leader).
         // Also, schedule a timer in case we don't hear from the leader.
         self.timer.reset();
-        if self.exp_num == 1 {
-            // if running async hotstuff
-            if self.name == self.leader_elector.get_leader(self.round) {
-                self.generate_proposal(None, None, self.high_qc.clone())
-                    .await
-                    .expect("Failed to send the first block");
-            }
-        }
+        // if self.exp_num == 1 {
+        //     // if running async hotstuff
+        //     if self.name == self.leader_elector.get_leader(self.round) {
+        //         self.generate_proposal(None, None, self.high_qc.clone())
+        //             .await
+        //             .expect("Failed to send the first block");
+        //     }
+        // }
 
         // This is the main loop: it processes incoming blocks and votes,
         // and receive timeout notifications from our Timeout Manager.
@@ -1031,7 +1022,7 @@ impl Fallback {
                     }
                 },
                 () = &mut self.timer => self.local_timeout_view().await,
-                else => break,
+                else => break
             };
             match result {
                 Ok(()) => (),
@@ -1039,6 +1030,12 @@ impl Fallback {
                 Err(ConsensusError::SerializationError(e)) => error!("Store corrupted. {}", e),
                 Err(e) => warn!("{}", e),
             }
+
+            // info!("About to execute local_timeout_view");
+            // match self.local_timeout_view().await {
+            //     Ok(_) => debug!("local_timeout_view executed successfully"),
+            //     Err(e) => warn!("local_timeout_view failed: {}", e),
+            // }
         }
     }
 }
